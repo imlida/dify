@@ -645,9 +645,34 @@ services:
     depends_on:
       - api
       - web
-    ports:
-      - '${EXPOSE_NGINX_PORT:-80}:${NGINX_PORT:-80}'
-      - '${EXPOSE_NGINX_SSL_PORT:-443}:${NGINX_SSL_PORT:-443}'
+    labels:
+      # 启用 Traefik 路由
+      - "traefik.enable=true"
+
+      # -------------------------------
+      # 主路由器配置（关键修改：路由器名称改为唯一值）
+      # -------------------------------
+      - "traefik.http.routers.dify-main.rule=Host(`dify.dareng.com`)"
+      - "traefik.http.routers.dify-main.entrypoints=websecure"
+      - "traefik.http.routers.dify-main.tls.certresolver=dns-cloudflare"
+
+      # -------------------------------
+      # 中间件配置（名称调整为服务专属）
+      # -------------------------------
+      - "traefik.http.middlewares.dify-secure.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.dify-compress.compress=true"
+
+      # -------------------------------
+      # 将中间件绑定到主路由器
+      # -------------------------------
+      - "traefik.http.routers.dify-main.middlewares=dify-secure,dify-compress"
+
+      # -------------------------------
+      # 服务端口配置
+      # -------------------------------
+      - "traefik.http.services.dify-backend.loadbalancer.server.port=80"
+    networks:
+      - traefik-network
 
   # The Weaviate vector store.
   weaviate:
@@ -1010,7 +1035,9 @@ networks:
   opensearch-net:
     driver: bridge
     internal: true
-
+  traefik-network:
+    driver: bridge
+    internal: true
 volumes:
   oradata:
   dify_es01_data:
