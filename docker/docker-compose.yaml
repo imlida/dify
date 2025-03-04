@@ -1038,6 +1038,7 @@ networks:
   traefik-network:
     driver: bridge
     internal: true
+    name: traefik-network
 volumes:
   oradata:
   dify_es01_data:
